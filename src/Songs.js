@@ -3,7 +3,7 @@ export const songsList = [
     title: 'Death Bed',
     artist: 'Powfu',
     artwork: 'https://samplesongs.netlify.app/album-arts/death-bed.jpg',
-    url: 'https://samplesongs.netlify.app/Death%20Bed.mp3',
+    url: 'https://drive.google.com/file/d/1cvQLmOS61vW6Mi_ADwF02h34ha8rKN96/view',
     id: '1',
   },
   {

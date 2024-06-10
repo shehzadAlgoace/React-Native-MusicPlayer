@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable eqeqeq */
 /* eslint-disable react-native/no-inline-styles */
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   FlatList,
 } from 'react-native';
-import React, {useEffect, useState} from 'react';
 import LinearGradient from 'react-native-linear-gradient';
 import {songsList} from './src/Songs';
 import TrackPlayer, {
@@ -17,23 +16,26 @@ import TrackPlayer, {
   State,
   usePlaybackState,
   useProgress,
+  Event,
+  useTrackPlayerEvents,
 } from 'react-native-track-player';
 import SongPlayer from './SongPlayer';
 
 const App = () => {
+  const [shuffleMode, setShuffleMode] = useState(false);
+  const [shuffleClickCount, setShuffleClickCount] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const playbackState = usePlaybackState();
+  const playbackState = usePlaybackState().state;
   const progress = useProgress();
   const [isVisible, setIsVisible] = useState(false);
-
   useEffect(() => {
     setupPlayer();
   }, []);
+
   const setupPlayer = async () => {
     try {
       await TrackPlayer.setupPlayer();
       await TrackPlayer.updateOptions({
-        // Media controls capabilities
         capabilities: [
           Capability.Play,
           Capability.Pause,
@@ -41,26 +43,56 @@ const App = () => {
           Capability.SkipToPrevious,
           Capability.Stop,
         ],
-
-        // Capabilities that will show up when the notification is in the compact form on Android
         compactCapabilities: [Capability.Play, Capability.Pause],
-
-        // Icons for the notification on Android (if you don't like the default ones)
       });
       await TrackPlayer.add(songsList);
     } catch (e) {
       console.log(e);
     }
   };
+
+  useTrackPlayerEvents([Event.PlaybackState], event => {
+    console.log('Playback State Changed:', event.state);
+  });
+
   useEffect(() => {
-    if (State.Playing == playbackState) {
-      if (progress.position.toFixed(0) == progress.duration.toFixed(0)) {
-        if (currentIndex < songsList.length) {
+    if (playbackState === State.Playing) {
+      if (progress.position.toFixed(0) === progress.duration.toFixed(0)) {
+        if (currentIndex < songsList.length - 1) {
           setCurrentIndex(currentIndex + 1);
+        } else {
+          setCurrentIndex(0); // Loop back to the first song if the playlist ends
         }
       }
     }
   }, [progress]);
+
+  const handlePlayPause = async () => {
+    if (playbackState === State.Playing) {
+      console.log('Pausing playback');
+      await TrackPlayer.pause();
+    } else {
+      console.log('Starting playback');
+      console.log('State.Playing', State.Playing);
+      console.log('playbackState.', playbackState.state);
+      await TrackPlayer.play();
+      // await TrackPlayer.pause();
+    }
+  };
+  //handleShuffleClick function
+  const handleShuffleClick = () => {
+    if (shuffleClickCount === 0) {
+      setShuffleMode(true);
+    } else if (shuffleClickCount === 1) {
+      // Reset to normal mode
+      setShuffleMode(false);
+    } else {
+      // Reset click count
+      setShuffleClickCount(0);
+    }
+    // Increment click count
+    setShuffleClickCount(count => count + 1);
+  };
   return (
     <LinearGradient
       colors={['#a34c0d', '#592804', '#241001', '#000000']}
@@ -106,7 +138,6 @@ const App = () => {
             height: 37,
             backgroundColor: '#b06a41',
             borderRadius: 5,
-
             alignItems: 'center',
             justifyContent: 'center',
             marginLeft: 5,
@@ -182,20 +213,23 @@ const App = () => {
           />
         </View>
         <View style={{flexDirection: 'row', alignItems: 'center'}}>
-          <Image
+          {/* <Image
             source={require('./src/images/suffle.png')}
             style={{width: 30, height: 30, tintColor: '#bababa'}}
-          />
-          <TouchableOpacity
-            onPress={async () => {
-              if (State.Playing == playbackState) {
-                await TrackPlayer.pause();
-              } else {
-                await TrackPlayer.skip(currentIndex);
-                await TrackPlayer.play();
+          /> */}
+          <TouchableOpacity onPress={handleShuffleClick}>
+            <Image
+              source={
+                shuffleMode
+                  ? require('./src/images/suffle.png')
+                  : require('./src/images/pause.png')
               }
-            }}>
-            {State.Playing == playbackState ? (
+              style={{width: 30, height: 30}}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={handlePlayPause}>
+            {playbackState === State.Playing ? (
               <Image
                 source={require('./src/images/pause.png')}
                 style={{
@@ -252,7 +286,7 @@ const App = () => {
                     {item.artist}
                   </Text>
                 </View>
-                {index == currentIndex && State.Playing == playbackState && (
+                {index === currentIndex && playbackState === State.Playing && (
                   <Image
                     source={require('./src/images/playing.png')}
                     style={{
@@ -281,6 +315,7 @@ const App = () => {
           position: 'absolute',
           bottom: 0,
           backgroundColor: 'rgba(0,0,0,0.9)',
+          // backgroundColor: 'red',
           flexDirection: 'row',
           alignItems: 'center',
           paddingLeft: 20,
@@ -307,16 +342,15 @@ const App = () => {
 
         <TouchableOpacity
           onPress={async () => {
-            if (State.Playing == playbackState) {
+            if (playbackState === State.Playing) {
               await TrackPlayer.pause();
             } else {
-              await TrackPlayer.skip(currentIndex);
               await TrackPlayer.play();
             }
           }}>
           <Image
             source={
-              State.Playing == playbackState
+              playbackState === State.Playing
                 ? require('./src/images/pause2.png')
                 : require('./src/images/play.png')
             }
@@ -342,5 +376,3 @@ const App = () => {
 };
 
 export default App;
-
-//'#a34c0d', '#592804', '#241001', '#000000'
